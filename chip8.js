@@ -526,19 +526,6 @@ class Chip8 {
         regEle.innerHTML += `I:          ${hexStr(this._I, 4)}\n`;
         regEle.innerHTML += `delayTimer: ${hexStr(this.delayTimer, 4)}\n`;
         regEle.innerHTML += `soundTimer: ${hexStr(this.soundTimer, 4)}\n`;
-
-        // let binStr = byte => {
-        //     return byte
-        //         .toString(2)
-        //         .padStart(8, "0")
-        //         .split("")
-        //         .join(" ") + " ";
-        // };
-        // regEle.innerHTML += "\nscreen ram:\n  ";
-        // for (let i = 0xF00; i < this.memory.length; i++) {
-        //     regEle.innerHTML += binStr(this.memory[i]);
-        //     if ((i + 1) % (64 / 8) === 0) regEle.innerHTML += "\n  ";
-        // }
     }
 
     updateCanvas() {
