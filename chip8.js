@@ -1,6 +1,6 @@
 // @ts-check
 
-let DEBUG = false;
+let DEBUG = true;
 let TIME = false;
 
 class Chip8 {
@@ -126,7 +126,7 @@ class Chip8 {
 
         this.cycle = () => {
             // this.main();
-            for (let i=0; i<4; i++) this.main();
+            for (let i = 0; i < 2; i++) this.main();
             if (!this.halt) setTimeout(this.cycle, 0);
         };
         setTimeout(this.cycle, 0);
@@ -215,7 +215,7 @@ class Chip8 {
         }
         else if ((upper & 0xF0) === 0x30) {
             // 0x3XNN Skip the following instruction if the value of register VX equals NN
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} equals ${hexStr(NN, 2)}`);
+            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} (${hexStr(this.V[x], 2)}) equals ${hexStr(NN, 2)}`);
 
             if (this.V[x] === NN) {
                 this.address += 2;
@@ -223,7 +223,7 @@ class Chip8 {
         }
         else if ((upper & 0xF0) === 0x40) {
             // 0x4XNN Skip the following instruction if the value of register VX is not equal to NN
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} is not equal to ${hexStr(NN, 2)}`);
+            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} (${hexStr(this.V[x], 2)}) is not equal to ${hexStr(NN, 2)}`);
 
             if (this.V[x] !== NN) {
                 this.address += 2;
@@ -231,7 +231,7 @@ class Chip8 {
         }
         else if ((upper & 0xF0) === 0x50) {
             // 0x5XY0 Skip the following instruction if the value of register VX is equal to the value of register VY
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)}  is equal to the value of register V${hexStr(x, 0, false)}`);
+            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} (${hexStr(this.V[x], 2)}) is equal to the value of register V${hexStr(x, 0, false)}`);
 
             if (this.V[x] === this.V[y]) {
                 this.address += 2;
@@ -239,15 +239,13 @@ class Chip8 {
         }
         else if ((upper & 0xF0) === 0x60) {
             // 0x6XNN Store number NN in register VX
-            const num = opcode & 0x00FF;
-            this.V[x] = num;
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store number ${hexStr(num)} in register V${hexStr(x, 0, false)}`);
+            this.V[x] = NN;
+            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store number ${hexStr(NN)} in register V${hexStr(x, 0, false)}`);
         }
         else if ((upper & 0xF0) === 0x70) {
             // 0x7XNN Add the value NN to register VX
-            const num = opcode & 0x00FF;
-            this.V[x] += num;
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Add ${hexStr(num)} to register V${hexStr(x, 0, false)}`);
+            this.V[x] += NN;
+            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Add ${hexStr(NN)} to register V${hexStr(x, 0, false)}`);
         }
 
         else if ((upper & 0xF0) === 0x80) {
@@ -340,7 +338,7 @@ class Chip8 {
         else if ((upper & 0xF0) === 0x90) {
             // 0x9XY0 Skip the following instruction if the value of 
             // register VX is not equal to the value of register VY
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register VX is not equal to the value of register VY`);
+            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} (${hexStr(this.V[x], 2)}) is not equal to the value of register V${hexStr(y, 0, false)} (${hexStr(this.V[y], 2)})`);
 
             if (this.V[x] !== this.V[y]) {
                 this.address += 2;
@@ -381,15 +379,20 @@ class Chip8 {
                 this.memory[0xF00 + byteNr + (i * 64 / 8)] ^= this.memory[this.I + i] >> bitNr;
                 this.memory[0xF00 + byteNr + (i * 64 / 8) + 1] ^= this.memory[this.I + i] << 8 - bitNr;
 
-                // Set VF to 01 if any set pixels are changed
-                if ((this.memory[0xF00 + byteNr + i] & orgByte) !== orgByte) this.V[0xF] = 1;
-                if ((this.memory[0xF00 + byteNr + i] & orgByte2) !== orgByte2) this.V[0xF] = 1;
+                // Set VF to 01 if any set pixels are changed to unset, and 00 otherwise
+                this.V[0xF] = 0;
+                let mask = 0x80;
+                for (let b = 0; b < 8; b++) {
+                    if (((orgByte & mask) > (this.memory[0xF00 + byteNr + (i * 64 / 8)] & mask)) ||
+                        ((orgByte2 & mask) > (this.memory[0xF00 + byteNr + (i * 64 / 8) + 1] & mask))) {
+                        this.V[0xF] = 1;
+                        break;
+                    }
+                    mask >>= 1;
+                }
             }
 
-            // this.updateCanvas();
-
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Draw a sprite at position x${this.V[x]}, y${this.V[y]} with ${N} bytes of sprite data starting at the address stored in I (${this.I.toString(2)})`);
-            // console.info(`Opcode not fully implemented (${hexStr(opcode, 4)} @${hexStr(this.address, 4)}).\n0xDXYN Draw a sprite at position x${this.V[x]}, y${this.V[y]} with ${N} bytes of sprite data starting at the address stored in I (${this.I.toString(2)})`);
         }
 
 
