@@ -597,6 +597,6 @@ async function fetchGame(game) {
 
 (async () => {
     const game = window.location.search.replace("?", "").toUpperCase() || "PONG";
-    document.querySelector(".game").textContent = game;
+    document.querySelector(".game").textContent = game[0]+game.slice(1,game.length).toLowerCase();
     const chip8 = new Chip8(await fetchGame(game));
 })();
