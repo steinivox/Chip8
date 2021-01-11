@@ -1,6 +1,6 @@
 // @ts-check
 
-let DEBUG = true;
+let DEBUG = false;
 let TIME = false;
 
 class Chip8 {
@@ -56,8 +56,8 @@ class Chip8 {
         this.gainNode = audioCtx.createGain();
         this.beeper.connect(this.gainNode);
         this.gainNode.connect(audioCtx.destination);
-        
-        this.beeper.start();
+
+        // this.beeper.start();
         this.gainNode.gain.value = 0;
 
         this.delayTimer = 0;
@@ -68,11 +68,14 @@ class Chip8 {
             if (this.delayTimer !== 0) this.delayTimer--;
             if (this.soundTimer !== 0) {
                 this.soundTimer--;
-                if (!this.gainNode.gain.value){
-                    this.gainNode.gain.value = 1;
+                if (!this.gainNode.gain.value) {
+                    if (this.beeper.context.state !== "running") {
+                        this.beeper.start();
+                    }
+                    this.gainNode.gain.value = 0.05;
                 }
-            }                
-            else if (this.gainNode.gain.value){
+            }
+            else if (this.gainNode.gain.value) {
                 this.gainNode.gain.value = 0;
             }
         }, 1 / 60 * 1000);
@@ -122,7 +125,8 @@ class Chip8 {
         }
 
         this.cycle = () => {
-            this.main();
+            // this.main();
+            for (let i=0; i<4; i++) this.main();
             if (!this.halt) setTimeout(this.cycle, 0);
         };
         setTimeout(this.cycle, 0);
