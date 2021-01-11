@@ -84,11 +84,6 @@ class Chip8 {
         this.canvas.width = 64;
         this.canvas.height = 32;
 
-        // this.ramCanvas = document.querySelector("canvas.ram");
-        // this.ramCtx = this.ramCanvas.getContext("2d");
-        // this.ramCanvas.width = 64;
-        // this.ramCanvas.height = 512;
-
         this.keyMap = {
             "1": 0x1,
             "2": 0x2,
@@ -138,7 +133,6 @@ class Chip8 {
         // draw loop
         this.draw = () => {
             this.updateCanvas();
-            // this.drawRam();
             this.printRegisters();
             window.requestAnimationFrame(this.draw);
         };
@@ -560,34 +554,6 @@ class Chip8 {
         }
         this.canvasCtx.putImageData(imageData, 0, 0);
     }
-
-    // drawRam() {
-    //     var imageData = this.ramCtx.getImageData(0, 0, this.ramCanvas.width, this.ramCanvas.height);
-    //     const data = imageData.data;
-
-    //     for (let i = 0; i < 4096; i++) {
-    //         let mask = 128;
-    //         for (let b = 0; b < 8; b++) {
-    //             let dIdx = (i * 8 + b) * 4;
-    //             if (this.memory[i] & mask) {
-    //                 // white
-    //                 data[dIdx] = 255; // red
-    //                 data[dIdx + 1] = 255; // green
-    //                 data[dIdx + 2] = 255; // blue
-    //                 data[dIdx + 3] = 255; // alpha
-    //             }
-    //             else {
-    //                 // black
-    //                 data[dIdx] = 32; // red
-    //                 data[dIdx + 1] = 32; // green
-    //                 data[dIdx + 2] = 32; // blue
-    //                 data[dIdx + 3] = 255; // alpha
-    //             }
-    //             mask >>= 1;
-    //         }
-    //     }
-    //     this.ramCtx.putImageData(imageData, 0, 0);
-    // }
 }
 
 function hexStr(num, length, prefix) {
