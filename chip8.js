@@ -51,11 +51,14 @@ class Chip8 {
 
         var audioCtx = new window.AudioContext();
         this.beeper = audioCtx.createOscillator();
-
         this.beeper.type = 'square';
         this.beeper.frequency.setValueAtTime(440, audioCtx.currentTime); // value in hertz
-        this.beeper.connect(audioCtx.destination);
-        this.beeping = false;
+        this.gainNode = audioCtx.createGain();
+        this.beeper.connect(this.gainNode);
+        this.gainNode.connect(audioCtx.destination);
+        
+        this.beeper.start();
+        this.gainNode.gain.value = 0;
 
         this.delayTimer = 0;
         this.soundTimer = 0;
@@ -65,12 +68,12 @@ class Chip8 {
             if (this.delayTimer !== 0) this.delayTimer--;
             if (this.soundTimer !== 0) {
                 this.soundTimer--;
-                if (!this.beeping && this.soundTimer >= 2) {
-                    this.beeper.start();
-                    this.beeping = true;
+                if (!this.gainNode.gain.value){
+                    this.gainNode.gain.value = 1;
                 }
-            } else if (this.beeping) {
-                this.beeper.stop();
+            }                
+            else if (this.gainNode.gain.value){
+                this.gainNode.gain.value = 0;
             }
         }, 1 / 60 * 1000);
 
@@ -109,54 +112,14 @@ class Chip8 {
         // for FX0A
         this.halt = false;
 
-        this.opmap = {
-            0x0: {
-                0xE0: () => console.log("--opmap: Clear the screen"),
-                0xEE: () => console.log("--opmap: Return from a subroutine"),
-            },
-            0x10: () => console.log("--opmap: 1NNN Jump to address NNN"),
-            0x20: () => console.log("--opmap: 2NNN Execute subroutine starting at address NNN"),
-            0x30: () => console.log("--opmap: 3XNN Skip the following instruction if the value of register VX equals NN"),
-            0x40: () => console.log("--opmap: 4XNN Skip the following instruction if the value of register VX is not equal to NN"),
-            0x50: () => console.log("--opmap: 5XY0 Skip the following instruction if the value of register VX is equal to the value of register VY"),
-            0x60: () => console.log("--opmap: 6XNN Store number NN in register VX"),
-            0x70: () => console.log("--opmap: 7XNN Add the value NN to register VX"),
-
-            0x80: {
-                0x00: () => console.log("--opmap: 8XY0 Store the value of register VY in register VX"),
-                0x01: () => console.log("--opmap: 8XY1 Set VX to VX OR VY"),
-                0x02: () => console.log("--opmap: 8XY2 Set VX to VX AND VY"),
-                0x03: () => console.log("--opmap: 8XY3 Set VX to VX XOR VY"),
-                0x04: () => console.log("--opmap: 8XY4 Add the value of register VY to register VX"),
-                0x05: () => console.log("--opmap: 8XY5 Subtract the value of register VY from register VX"),
-                0x06: () => console.log("--opmap: 8XY6 Store the value of register VY shifted right one bit in register VX"),
-                0x07: () => console.log("--opmap: 8XY7 Set register VX to the value of VY minus VX"),
-                0x0E: () => console.log("--opmap: 8XYE Store the value of register VY shifted left one bit in register VX"),
-            },
-
-            0x90: () => console.log("--opmap: 9XY0 Skip the following instruction if the value of register VX is not equal to the value of register VY"),
-            0xA0: () => console.log("--opmap: ANNN Store memory address NNN in register I"),
-            0xB0: () => console.log("--opmap: BNNN Jump to address NNN + V0"),
-            0xC0: () => console.log("--opmap: CXNN Set VX to a random number with a mask of NN"),
-            0xD0: () => console.log("--opmap: DXYN Draw a sprite at position VX, VY with N bytes of sprite data starting at the address stored in I"),
-
-            0xE0: {
-                0x9E: () => console.log("--opmap: EX9E Skip the following instruction if the key corresponding to the hex value currently stored in register VX is pressed"),
-                0xA1: () => console.log("--opmap: EXA1 Skip the following instruction if the key corresponding to the hex value currently stored in register VX is not pressed"),
-            },
-
-            0xF0: {
-                0x07: () => console.log("--opmap: FX07 Store the current value of the delay timer in register VX"),
-                0x0A: () => console.log("--opmap: FX0A Wait for a keypress and store the result in register VX"),
-                0x15: () => console.log("--opmap: FX15 Set the delay timer to the value of register VX"),
-                0x18: () => console.log("--opmap: FX18 Set the sound timer to the value of register VX"),
-                0x1E: () => console.log("--opmap: FX1E Add the value stored in register VX to register I"),
-                0x29: () => console.log("--opmap: FX29 Set I to the memory address of the sprite data corresponding to the hexadecimal digit stored in register VX"),
-                0x33: () => console.log("--opmap: FX33 Store the binary-coded decimal equivalent of the value stored in register VX at addresses I, I+1, and I+2"),
-                0x55: () => console.log("--opmap: FX55 Store the values of registers V0 to VX inclusive in memory starting at address I"),
-                0x65: () => console.log("--opmap: FX65 Fill registers V0 to VX inclusive with the values stored in memory starting at address I"),
-            },
-        };
+        // 0.0026200000022072343 ms per main (no debug)
+        if (TIME) {
+            const t0 = performance.now();
+            for (let i = 0; i < 10000; i++) {
+                this.main();
+            }
+            console.log("blocking main loop: " + (performance.now() - t0) / 10000 + " ms per main");
+        }
 
         this.cycle = () => {
             this.main();
@@ -189,50 +152,43 @@ class Chip8 {
      * Main opcode decoder
      */
     main() {
-        //Danger!------------------------------------------------
-
-        // if (TIME) console.time("map_main");
-        // let upper = this.memory[this.address];
-        // let lower = this.memory[this.address + 1];
-
-        // (this.opmap[upper & 0xF0][lower] ||
-        //     this.opmap[upper & 0xF0][lower & 0x0F] ||
-        //     this.opmap[upper & 0xF0]
-        // )();
-
-        // if (TIME) console.timeEnd("map_main");
-
-        //-------------------------------------------------------
-
         // main: 1.6ms
         const opcode = (this.memory[this.address] << 8) | this.memory[this.address + 1];
-        if (TIME) console.time("main");
         const x = (opcode & 0x0F00) >> 8;
         const y = (opcode & 0x00F0) >> 4;
         const NNN = opcode & 0x0fff;
         const NN = opcode & 0x00ff;
-        if (opcode === 0x00E0) {
-            // 0x00E0 Clear the screen
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Clear the screen`);
 
-            for (let i = 0xF00; i < this.memory.length; i++) {
-                this.memory[i] = 0;
+        const upper = this.memory[this.address];
+        const lower = this.memory[this.address + 1];
+
+        if ((upper & 0xF0) === 0x00) {
+            if (lower === 0xE0) {
+                // 0x00E0 Clear the screen
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Clear the screen`);
+
+                for (let i = 0xF00; i < this.memory.length; i++) {
+                    this.memory[i] = 0;
+                }
             }
-        } else if (opcode === 0x00EE) {
-            // 0x00EE Return from a subroutine
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Return from a subroutine`);
+            else if (lower === 0xEE) {
+                // 0x00EE Return from a subroutine
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Return from a subroutine`);
 
-            // get old address from stack
-            this.address = ((this.memory[this.stackPointer] << 8) | this.memory[this.stackPointer - 1]); // - 2;
-            // if (DEBUG) console.debug(`\tRead ${hexStr(this.address + 2, 4)} from stack @ H${hexStr(this.stackPointer, 4)} - L${hexStr(this.stackPointer - 1, 4)}`);
+                // get old address from stack
+                this.address = ((this.memory[this.stackPointer] << 8) | this.memory[this.stackPointer - 1]); // - 2;
+                // if (DEBUG) console.debug(`\tRead ${hexStr(this.address + 2, 4)} from stack @ H${hexStr(this.stackPointer, 4)} - L${hexStr(this.stackPointer - 1, 4)}`);
 
-            // move stack pointer up
-            this.stackPointer += 2;
-        } else if ((opcode & 0xF000) === 0x1000) {
+                // move stack pointer up
+                this.stackPointer += 2;
+            }
+        }
+        else if ((upper & 0xF0) === 0x10) {
             // 0x1NNN Jump to address NNN            
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Jump to address ${hexStr(NNN, 4)}`);
             this.address = NNN - 2;
-        } else if ((opcode & 0xF000) === 0x2000) {
+        }
+        else if ((upper & 0xF0) === 0x20) {
             // 0x2NNN Execute subroutine starting at address NNN
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Execute subroutine starting at address ${hexStr(NNN, 4)}`);
 
@@ -252,110 +208,132 @@ class Chip8 {
             // jump to address NNN
             this.address = NNN - 2;
 
-        } else if ((opcode & 0xF000) === 0x3000) {
+        }
+        else if ((upper & 0xF0) === 0x30) {
             // 0x3XNN Skip the following instruction if the value of register VX equals NN
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} equals ${hexStr(NN, 2)}`);
 
             if (this.V[x] === NN) {
                 this.address += 2;
             }
-        } else if ((opcode & 0xF000) === 0x4000) {
+        }
+        else if ((upper & 0xF0) === 0x40) {
             // 0x4XNN Skip the following instruction if the value of register VX is not equal to NN
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)} is not equal to ${hexStr(NN, 2)}`);
 
             if (this.V[x] !== NN) {
                 this.address += 2;
             }
-        } else if ((opcode & 0xF000) === 0x5000) {
+        }
+        else if ((upper & 0xF0) === 0x50) {
             // 0x5XY0 Skip the following instruction if the value of register VX is equal to the value of register VY
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register V${hexStr(x, 0, false)}  is equal to the value of register V${hexStr(x, 0, false)}`);
 
             if (this.V[x] === this.V[y]) {
                 this.address += 2;
             }
-        } else if ((opcode & 0xF000) === 0x6000) {
+        }
+        else if ((upper & 0xF0) === 0x60) {
             // 0x6XNN Store number NN in register VX
             const num = opcode & 0x00FF;
             this.V[x] = num;
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store number ${hexStr(num)} in register V${hexStr(x, 0, false)}`);
-        } else if ((opcode & 0xF000) === 0x7000) {
+        }
+        else if ((upper & 0xF0) === 0x70) {
             // 0x7XNN Add the value NN to register VX
             const num = opcode & 0x00FF;
             this.V[x] += num;
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Add ${hexStr(num)} to register V${hexStr(x, 0, false)}`);
-        } else if ((opcode & 0xF00F) === 0x8000) {
-            // 0x8XY0 Store the value of register VY in register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the value of register V${hexStr(y, 0, false)} in register V${hexStr(x, 0, false)}`);
-            this.V[x] = this.V[y];
-        } else if ((opcode & 0xF00F) === 0x8001) {
-            // 0x8XY1 Set VX to VX OR VY
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set V${hexStr(x, 0, false)} to V${hexStr(x, 0, false)} OR V${hexStr(y, 0, false)}`);
-            this.V[x] |= this.V[y];
-        } else if ((opcode & 0xF00F) === 0x8002) {
-            // 0x8XY2 Set VX to VX AND VY
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set V${hexStr(x, 0, false)} to V${hexStr(x, 0, false)} AND V${hexStr(y, 0, false)}`);
-            this.V[x] &= this.V[y];
-        } else if ((opcode & 0xF00F) === 0x8003) {
-            // 0x8XY3 Set VX to VX XOR VY
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set V${hexStr(x, 0, false)} to V${hexStr(x, 0, false)} XOR V${hexStr(y, 0, false)}`);
-            this.V[x] ^= this.V[y];
-        } else if ((opcode & 0xF00F) === 0x8004) {
-            // 0x8XY4 Add the value of register VY to register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Add the value of register V${hexStr(y, 0, false)} to register V${hexStr(x, 0, false)}`);
+        }
 
-            const oldVx = this.V[x];
-            this.V[x] += this.V[y];
-
-            // Set VF to 01 if a carry occurs
-            // Set VF to 00 if a carry does not occur
-            if (oldVx + this.V[y] !== this.V[x]) {
-                this.V[0xF] = 1;
-            } else {
-                this.V[0xF] = 0;
+        else if ((upper & 0xF0) === 0x80) {
+            if ((lower & 0x0F) === 0x00) {
+                // 0x8XY0 Store the value of register VY in register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the value of register V${hexStr(y, 0, false)} in register V${hexStr(x, 0, false)}`);
+                this.V[x] = this.V[y];
             }
-        } else if ((opcode & 0xF00F) === 0x8005) {
-            // 0x8XY5 Subtract the value of register VY from register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Subtract the value of register V${hexStr(y, 0, false)} from register V${hexStr(x, 0, false)}`);
-
-            const oldVx = this.V[x];
-            this.V[x] -= this.V[y];
-
-            // Set VF to 00 if a borrow occurs
-            // Set VF to 01 if a borrow does not occur
-            if (oldVx - this.V[y] !== this.V[x]) {
-                this.V[0xF] = 0;
-            } else {
-                this.V[0xF] = 1;
+            else if ((lower & 0x0F) === 0x01) {
+                // 0x8XY1 Set VX to VX OR VY
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set V${hexStr(x, 0, false)} to V${hexStr(x, 0, false)} OR V${hexStr(y, 0, false)}`);
+                this.V[x] |= this.V[y];
             }
-        } else if ((opcode & 0xF00F) === 0x8006) {
-            // 0x8XY6 Store the value of register VY shifted right one bit in register VX
-            //        Set register VF to the least significant bit prior to the shift
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the value of register V${hexStr(y, 0, false)} shifted right one bit in register V${hexStr(x, 0, false)}`);
-
-            this.V[0xF] = this.V[y] & 1;
-            this.V[x] = this.V[y] >> 1;
-        } else if ((opcode & 0xF00F) === 0x8007) {
-            // 0x8XY7 Set register VX to the value of VY minus VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set register V${hexStr(x, 0, false)} to the value of V${hexStr(y, 0, false)} minus V${hexStr(x, 0, false)}`);
-
-            const oldVx = this.V[x];
-            this.V[x] = this.V[y] - this.V[x];
-
-            // Set VF to 00 if a borrow occurs
-            // Set VF to 01 if a borrow does not occur
-            if (this.V[y] - oldVx !== this.V[y]) {
-                this.V[0xF] = 0;
-            } else {
-                this.V[0xF] = 1;
+            else if ((lower & 0x0F) === 0x02) {
+                // 0x8XY2 Set VX to VX AND VY
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set V${hexStr(x, 0, false)} to V${hexStr(x, 0, false)} AND V${hexStr(y, 0, false)}`);
+                this.V[x] &= this.V[y];
             }
-        } else if ((opcode & 0xF00F) === 0x800E) {
-            // 0x8XYE Store the value of register VY shifted left one bit in register VX
-            //        Set register VF to the most significant bit prior to the shift
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the value of register V${hexStr(y, 0, false)} shifted left one bit in register V${hexStr(x, 0, false)}`);
+            else if ((lower & 0x0F) === 0x03) {
+                // 0x8XY3 Set VX to VX XOR VY
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set V${hexStr(x, 0, false)} to V${hexStr(x, 0, false)} XOR V${hexStr(y, 0, false)}`);
+                this.V[x] ^= this.V[y];
+            }
+            else if ((lower & 0x0F) === 0x04) {
+                // 0x8XY4 Add the value of register VY to register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Add the value of register V${hexStr(y, 0, false)} to register V${hexStr(x, 0, false)}`);
 
-            this.V[0xF] = (this.V[y] & 0x8000) >> 15;
-            this.V[x] = this.V[y] << 1;
-        } else if ((opcode & 0xF000) === 0x9000) {
+                const oldVx = this.V[x];
+                this.V[x] += this.V[y];
+
+                // Set VF to 01 if a carry occurs
+                // Set VF to 00 if a carry does not occur
+                if (oldVx + this.V[y] !== this.V[x]) {
+                    this.V[0xF] = 1;
+                }
+                else {
+                    this.V[0xF] = 0;
+                }
+            }
+            else if ((lower & 0x0F) === 0x05) {
+                // 0x8XY5 Subtract the value of register VY from register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Subtract the value of register V${hexStr(y, 0, false)} from register V${hexStr(x, 0, false)}`);
+
+                const oldVx = this.V[x];
+                this.V[x] -= this.V[y];
+
+                // Set VF to 00 if a borrow occurs
+                // Set VF to 01 if a borrow does not occur
+                if (oldVx - this.V[y] !== this.V[x]) {
+                    this.V[0xF] = 0;
+                }
+                else {
+                    this.V[0xF] = 1;
+                }
+            }
+            else if ((lower & 0x0F) === 0x06) {
+                // 0x8XY6 Store the value of register VY shifted right one bit in register VX
+                //        Set register VF to the least significant bit prior to the shift
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the value of register V${hexStr(y, 0, false)} shifted right one bit in register V${hexStr(x, 0, false)}`);
+
+                this.V[0xF] = this.V[y] & 1;
+                this.V[x] = this.V[y] >> 1;
+            }
+            else if ((lower & 0x0F) === 0x07) {
+                // 0x8XY7 Set register VX to the value of VY minus VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set register V${hexStr(x, 0, false)} to the value of V${hexStr(y, 0, false)} minus V${hexStr(x, 0, false)}`);
+
+                const oldVx = this.V[x];
+                this.V[x] = this.V[y] - this.V[x];
+
+                // Set VF to 00 if a borrow occurs
+                // Set VF to 01 if a borrow does not occur
+                if (this.V[y] - oldVx !== this.V[y]) {
+                    this.V[0xF] = 0;
+                }
+                else {
+                    this.V[0xF] = 1;
+                }
+            }
+            else if ((lower & 0x0F) === 0x0E) {
+                // 0x8XYE Store the value of register VY shifted left one bit in register VX
+                //        Set register VF to the most significant bit prior to the shift
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the value of register V${hexStr(y, 0, false)} shifted left one bit in register V${hexStr(x, 0, false)}`);
+
+                this.V[0xF] = (this.V[y] & 0x8000) >> 15;
+                this.V[x] = this.V[y] << 1;
+            }
+        }
+
+        else if ((upper & 0xF0) === 0x90) {
             // 0x9XY0 Skip the following instruction if the value of 
             // register VX is not equal to the value of register VY
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the value of register VX is not equal to the value of register VY`);
@@ -363,21 +341,25 @@ class Chip8 {
             if (this.V[x] !== this.V[y]) {
                 this.address += 2;
             }
-        } else if ((opcode & 0xF000) === 0xA000) {
+        }
+        else if ((upper & 0xF0) === 0xA0) {
             // 0xANNN Store memory address NNN in register I
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store memory address ${hexStr(NNN, 4)} in register I`);
             this.I = NNN;
-        } else if ((opcode & 0xF000) === 0xB000) {
+        }
+        else if ((upper & 0xF0) === 0xB0) {
             // 0xBNNN Jump to address NNN + V0
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Jump to address ${hexStr(NNN, 4)} + ${hexStr(this.V[0], 4)}`);
 
             this.address = NNN + this.V[0] - 2;
-        } else if ((opcode & 0xF000) === 0xC000) {
+        }
+        else if ((upper & 0xF0) === 0xC0) {
             // 0xCXNN Set VX to a random number with a mask of NN
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set V${hexStr(x, 0, false)} to a random number with a mask of ${hexStr(NN)}`);
 
             this.V[x] = Math.floor(Math.random() * 0xFF) & NN;
-        } else if ((opcode & 0xF000) === 0xD000) {
+        }
+        else if ((upper & 0xF0) === 0xD0) {
             // 0xDXYN Draw a sprite at position VX, VY with N bytes of sprite data starting at the address stored in I
             //        Set VF to 01 if any set pixels are changed to unset, and 00 otherwise
 
@@ -404,104 +386,123 @@ class Chip8 {
 
             if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Draw a sprite at position x${this.V[x]}, y${this.V[y]} with ${N} bytes of sprite data starting at the address stored in I (${this.I.toString(2)})`);
             // console.info(`Opcode not fully implemented (${hexStr(opcode, 4)} @${hexStr(this.address, 4)}).\n0xDXYN Draw a sprite at position x${this.V[x]}, y${this.V[y]} with ${N} bytes of sprite data starting at the address stored in I (${this.I.toString(2)})`);
-        } else if ((opcode & 0xF00F) === 0xE00E) {
-            // 0xEX9E Skip the following instruction 
-            // if the key corresponding to the hex value 
-            // currently stored in register VX is pressed
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX is pressed`);
-
-            if (this.keys[this.V[x]]) {
-                this.address += 2;
-            }
-        } else if ((opcode & 0xF00F) === 0xE001) {
-            // 0xEXA1 Skip the following instruction 
-            // if the key corresponding to the hex value 
-            // currently stored in register VX is not pressed
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX is not pressed`);
-
-            if (!this.keys[this.V[x]]) {
-                this.address += 2;
-            }
-        } else if ((opcode & 0xF0FF) === 0xF007) {
-            // 0xFX07 Store the current value of the delay timer in register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the current value of the delay timer in register V${hexStr(x, 0, false)}`);
-
-            this.V[x] = this.delayTimer;
-        } else if ((opcode & 0xF0FF) === 0xF00A) {
-            // 0xFX0A Wait for a keypress and store the result in register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Wait for a keypress and store the result in register V${hexStr(x, 0, false)}`);
-
-            this.halt = true;
-            document.onkeypress = e => {
-                this.V[x] = this.keyMap[e.key];
-                this.halt = false;
-                window.requestAnimationFrame(this.cycle);
-                // setTimeout(this.cycle, period);
-            };
-        } else if ((opcode & 0xF0FF) === 0xF015) {
-            // 0xFX15 Set the delay timer to the value of register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set the delay timer to the value of register V${hexStr(x, 0, false)}`);
-
-            this.delayTimer = this.V[x];
-        } else if ((opcode & 0xF0FF) === 0xF018) {
-            // 0xFX18 Set the sound timer to the value of register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set the sound timer to the value of register V${hexStr(x, 0, false)}`);
-
-            this.soundTimer = this.V[x];
-        } else if ((opcode & 0xF0FF) === 0xF01E) {
-            // 0xFX1E Add the value stored in register VX to register I
-            // !!! should this sum VX and I or overwrite I with VX? !!!
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Add the value stored in register V${hexStr(x, 0, false)} to register I`);
-            // if (DEBUG) console.warn("!!! should 0xFX1E sum VX and I or overwrite I with VX? !!!");
-
-            this.I += this.V[x];
-        } else if ((opcode & 0xF0FF) === 0xF029) {
-            // 0xFX29 Set I to the memory address of the sprite data corresponding to 
-            //        the hexadecimal digit stored in register VX
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set I to the memory address of the sprite data corresponding to the hexadecimal digit stored in register V${hexStr(x, 0, false)}`);
-
-            this.I = this.V[x] * 5;
-        } else if ((opcode & 0xF0FF) === 0xF033) {
-            // 0xFX33 Store the binary-coded decimal equivalent of the value 
-            //        stored in register VX at addresses I, I+1, and I+2
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the binary-coded decimal equivalent of the value stored in register V${hexStr(x, 0, false)} at addresses I (${hexStr(this.I, 4)}), I+1, and I+2`);
-
-            let nr = this.V[x];
-            for (let i = 2; i >= 0; i--) {
-                const a = nr % 10;
-                nr -= a;
-                nr /= 10;
-                this.memory[this.I + i] = a;
-            }
-        } else if ((opcode & 0xF0FF) === 0xF055) {
-            // 0xFX55 Store the values of registers V0 to VX inclusive in memory 
-            //        starting at address I
-            //        I is set to I + X + 1 after operation
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the values of registers V0 to V${hexStr(x, 0, false)} inclusive in memory starting at address ${hexStr(this.I, 4)}`);
-
-            for (let i = 0; i <= x; i++) {
-                this.memory[this.I + i] = this.V[i];
-            }
-            this.I += x + 1;
-        } else if ((opcode & 0xF0FF) === 0xF065) {
-            // 0xFX65 Fill registers V0 to VX inclusive with the values 
-            //        stored in memory starting at address I
-            //        I is set to I + X + 1 after operation
-            if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Fill registers V0 to V${hexStr(x, 0, false)} inclusive with the values stored in memory starting at address ${hexStr(this.I, 4)}`);
-
-            for (let i = 0; i <= x; i++) {
-                this.V[i] = this.memory[this.I + i];
-            }
-            this.I += x + 1;
-        } else {
-            // throw new Error(`Illegal opcode ${hexStr(opcode, 4)} at address ${hexStr(this.address, 4)}`);
-            console.error(`Illegal opcode ${hexStr(opcode, 4)} at address ${hexStr(this.address, 4)}`);
-            this.halt = true;
         }
 
-        this.address += 2;
 
-        if (TIME) console.timeEnd("main");
+        else if ((upper & 0xF0) === 0xE0) {
+            // if ((opcode & 0xF00F) === 0xE00E) {
+            if (lower === 0x9E) {
+                // 0xEX9E Skip the following instruction 
+                // if the key corresponding to the hex value 
+                // currently stored in register VX is pressed
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX is pressed`);
+
+                if (this.keys[this.V[x]]) {
+                    this.address += 2;
+                }
+            }
+            if (lower === 0xA1) {
+                // 0xEXA1 Skip the following instruction 
+                // if the key corresponding to the hex value 
+                // currently stored in register VX is not pressed
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX is not pressed`);
+
+                if (!this.keys[this.V[x]]) {
+                    this.address += 2;
+                }
+            }
+        }
+
+        else if ((upper & 0xF0) === 0xF0) {
+            // if ((opcode & 0xF0FF) === 0xF007) {
+            if (lower === 0x07) {
+                // 0xFX07 Store the current value of the delay timer in register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the current value of the delay timer in register V${hexStr(x, 0, false)}`);
+
+                this.V[x] = this.delayTimer;
+            }
+            else if (lower === 0x0A) {
+                // 0xFX0A Wait for a keypress and store the result in register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Wait for a keypress and store the result in register V${hexStr(x, 0, false)}`);
+
+                this.halt = true;
+                document.onkeypress = e => {
+                    this.V[x] = this.keyMap[e.key];
+                    this.halt = false;
+                    window.requestAnimationFrame(this.cycle);
+                    // setTimeout(this.cycle, period);
+                };
+            }
+            else if (lower === 0x15) {
+                // 0xFX15 Set the delay timer to the value of register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set the delay timer to the value of register V${hexStr(x, 0, false)}`);
+
+                this.delayTimer = this.V[x];
+            }
+            else if (lower === 0x18) {
+                // 0xFX18 Set the sound timer to the value of register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set the sound timer to the value of register V${hexStr(x, 0, false)} (${hexStr(this.V[x], 2)})`);
+
+                this.soundTimer = this.V[x];
+            }
+            else if (lower === 0x1E) {
+                // 0xFX1E Add the value stored in register VX to register I
+                // !!! should this sum VX and I or overwrite I with VX? !!!
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Add the value stored in register V${hexStr(x, 0, false)} to register I`);
+                // if (DEBUG) console.warn("!!! should 0xFX1E sum VX and I or overwrite I with VX? !!!");
+
+                this.I += this.V[x];
+            }
+            else if (lower === 0x29) {
+                // 0xFX29 Set I to the memory address of the sprite data corresponding to 
+                //        the hexadecimal digit stored in register VX
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Set I to the memory address of the sprite data corresponding to the hexadecimal digit stored in register V${hexStr(x, 0, false)}`);
+
+                this.I = this.V[x] * 5;
+            }
+            else if (lower === 0x33) {
+                // 0xFX33 Store the binary-coded decimal equivalent of the value 
+                //        stored in register VX at addresses I, I+1, and I+2
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the binary-coded decimal equivalent of the value stored in register V${hexStr(x, 0, false)} at addresses I (${hexStr(this.I, 4)}), I+1, and I+2`);
+
+                let nr = this.V[x];
+                for (let i = 2; i >= 0; i--) {
+                    const a = nr % 10;
+                    nr -= a;
+                    nr /= 10;
+                    this.memory[this.I + i] = a;
+                }
+            }
+            else if (lower === 0x55) {
+                // 0xFX55 Store the values of registers V0 to VX inclusive in memory 
+                //        starting at address I
+                //        I is set to I + X + 1 after operation
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Store the values of registers V0 to V${hexStr(x, 0, false)} inclusive in memory starting at address ${hexStr(this.I, 4)}`);
+
+                for (let i = 0; i <= x; i++) {
+                    this.memory[this.I + i] = this.V[i];
+                }
+                this.I += x + 1;
+            }
+            else if (lower === 0x65) {
+                // 0xFX65 Fill registers V0 to VX inclusive with the values 
+                //        stored in memory starting at address I
+                //        I is set to I + X + 1 after operation
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Fill registers V0 to V${hexStr(x, 0, false)} inclusive with the values stored in memory starting at address ${hexStr(this.I, 4)}`);
+
+                for (let i = 0; i <= x; i++) {
+                    this.V[i] = this.memory[this.I + i];
+                }
+                this.I += x + 1;
+            }
+        }
+        // else {
+        //     // throw new Error(`Illegal opcode ${hexStr(opcode, 4)} at address ${hexStr(this.address, 4)}`);
+        //     console.error(`Illegal opcode ${hexStr(opcode, 4)} at address ${hexStr(this.address, 4)}`);
+        //     this.halt = true;
+        // }
+
+        this.address += 2;
     }
 
     /**
@@ -534,7 +535,6 @@ class Chip8 {
     }
 
     updateCanvas() {
-        if (TIME) console.time("draw");
         var imageData = this.canvasCtx.getImageData(0, 0, 64, 32);
         const data = imageData.data;
         for (let i = 0; i < (32 * 64) / 8; i++) {
@@ -547,7 +547,8 @@ class Chip8 {
                     data[dIdx + 1] = 255; // green
                     data[dIdx + 2] = 255; // blue
                     data[dIdx + 3] = 255; // alpha
-                } else {
+                }
+                else {
                     // black
                     data[dIdx] = 32; // red
                     data[dIdx + 1] = 32; // green
@@ -558,7 +559,6 @@ class Chip8 {
             }
         }
         this.canvasCtx.putImageData(imageData, 0, 0);
-        if (TIME) console.timeEnd("draw");
     }
 }
 
@@ -588,7 +588,7 @@ async function fetchGame(game) {
 // var freq = 4; //hz
 // var period = 1 / freq * 1000; //ms
 
-(async() => {
+(async () => {
     const game = window.location.search.replace("?", "").toUpperCase() || "PONG";
     document.querySelector(".game").textContent = game;
     const chip8 = new Chip8(await fetchGame(game));
