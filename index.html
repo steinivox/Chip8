@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chip-8</title>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <!-- Emoji favicon! -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
+    <style>
+        canvas {
+            width: 100%;
+            height: auto;
+
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Chip8</h1>
+
+        <div class="row">
+            <div class="col-3">
+                <pre class="registers"></pre>
+            </div>
+            <div class="col-9">
+                <h1 class="game">Game</h1>
+                <canvas></canvas>
+            </div>
+        </div>
+    </div>
+    <script src="chip8.js"></script>
+</body>
+
+
+</html>
