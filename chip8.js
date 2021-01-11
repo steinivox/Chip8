@@ -402,7 +402,7 @@ class Chip8 {
                 // 0xEX9E Skip the following instruction 
                 // if the key corresponding to the hex value 
                 // currently stored in register VX is pressed
-                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX is pressed`);
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX (${hexStr(this.V[x],2)}) is pressed`);
 
                 if (this.keys[this.V[x]]) {
                     this.address += 2;
@@ -412,7 +412,7 @@ class Chip8 {
                 // 0xEXA1 Skip the following instruction 
                 // if the key corresponding to the hex value 
                 // currently stored in register VX is not pressed
-                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX is not pressed`);
+                if (DEBUG) console.debug(`${hexStr(opcode, 4)} @${hexStr(this.address, 4)}: Skip the following instruction if the key corresponding to the hex value currently stored in register VX (${hexStr(this.V[x],2)}) is not pressed`);
 
                 if (!this.keys[this.V[x]]) {
                     this.address += 2;
