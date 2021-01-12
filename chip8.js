@@ -22,7 +22,8 @@ class Chip8 {
         this.stackPointer = 0xEFF;
 
         // Load characters into memory
-        let chars = [0xF0, 0x90, 0x90, 0x90, 0xF0,
+        let chars = [
+            0xF0, 0x90, 0x90, 0x90, 0xF0,
             0x20, 0x60, 0x20, 0x20, 0x70,
             0xF0, 0x10, 0xF0, 0x80, 0xF0,
             0xF0, 0x10, 0xF0, 0x10, 0xF0,
@@ -84,6 +85,7 @@ class Chip8 {
         this.canvas.width = 64;
         this.canvas.height = 32;
 
+        //qwerty to hex keyboard
         this.keyMap = {
             "1": 0x1,
             "2": 0x2,
@@ -125,7 +127,7 @@ class Chip8 {
 
         this.cycle = () => {
             // this.main();
-            for (let i = 0; i < 2; i++) this.main();
+            for (let i = 0; i < 4; i++) this.main();
             if (!this.halt) setTimeout(this.cycle, 0);
         };
         setTimeout(this.cycle, 0);
@@ -583,7 +585,7 @@ async function fetchGame(game) {
 // var period = 1 / freq * 1000; //ms
 
 (async () => {
-    const game = window.location.search.replace("?", "").toUpperCase() || "PONG";
+    const game = window.location.search.replace("?", "").toUpperCase() || "TETRIS";
     document.querySelector(".game").textContent = game[0] + game.slice(1, game.length).toLowerCase();
     const chip8 = new Chip8(await fetchGame(game));
 })();
