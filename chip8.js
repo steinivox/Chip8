@@ -517,17 +517,17 @@ class Chip8 {
      * Outputs V and I registers to screen
      */
     printRegisters() {
-        const regEle = document.querySelector(".registers");
-        regEle.innerHTML = "";
+        const info = document.querySelector(".info");
 
-        regEle.innerHTML += `PC:     ${hexStr(this.programCounter, 4)}\n`;
-        regEle.innerHTML += `I:      ${hexStr(this._I, 4)}\n`;
-        regEle.innerHTML += `Stack:  ${hexStr(this.stackPointer, 4)}\n`;
+        info.innerHTML = "PC   I    Stack  V0 V1 V2 V3 V4 V5 V6 V7 V8 V9 VA VB VC VD VE VF  Delay Sound\n";
+        info.innerHTML += `${hexStr(this.programCounter, 4, false)} `;
+        info.innerHTML += `${hexStr(this.I, 4, false)} `;
+        info.innerHTML += `${hexStr(this.stackPointer, 4, false)}   `;
         for (let i = 0; i < this.V.length; i++) {
-            regEle.innerHTML += `V${hexStr(i, 1, false)}:       ${hexStr(this.V[i], 2)}\n`;
+            info.innerHTML += `${hexStr(this.V[i], 2, false)} `;
         }
-        regEle.innerHTML += `delayTmr: ${hexStr(this.delayTimer, 2)}\n`;
-        regEle.innerHTML += `soundTmr: ${hexStr(this.soundTimer, 2)}\n`;
+        info.innerHTML += ` ${hexStr(this.delayTimer, 2, false)}    `;
+        info.innerHTML += `${hexStr(this.soundTimer, 2, false)}     `;
     }
 
     updateCanvas() {
