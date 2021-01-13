@@ -520,14 +520,14 @@ class Chip8 {
         const regEle = document.querySelector(".registers");
         regEle.innerHTML = "";
 
-        regEle.innerHTML += `address:    ${hexStr(this.programCounter, 4)}\n`;
+        regEle.innerHTML += `PC:     ${hexStr(this.programCounter, 4)}\n`;
+        regEle.innerHTML += `I:      ${hexStr(this._I, 4)}\n`;
+        regEle.innerHTML += `Stack:  ${hexStr(this.stackPointer, 4)}\n`;
         for (let i = 0; i < this.V.length; i++) {
-            regEle.innerHTML += `V${hexStr(i, 1, false)}:         ${hexStr(this.V[i], 4)}\n`;
+            regEle.innerHTML += `V${hexStr(i, 1, false)}:       ${hexStr(this.V[i], 2)}\n`;
         }
-        regEle.innerHTML += `I:          ${hexStr(this._I, 4)}\n`;
-        regEle.innerHTML += `delayTimer: ${hexStr(this.delayTimer, 4)}\n`;
-        regEle.innerHTML += `soundTimer: ${hexStr(this.soundTimer, 4)}\n`;
-        regEle.innerHTML += `stackPntr : ${hexStr(this.stackPointer, 4)}\n`;
+        regEle.innerHTML += `delayTmr: ${hexStr(this.delayTimer, 2)}\n`;
+        regEle.innerHTML += `soundTmr: ${hexStr(this.soundTimer, 2)}\n`;
     }
 
     updateCanvas() {
