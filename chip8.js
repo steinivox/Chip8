@@ -1,6 +1,6 @@
 // @ts-check
 
-let DEBUG = true;
+let DEBUG = false;
 let TIME = false;
 
 class Chip8 {
