@@ -15,8 +15,13 @@ async function fetchGame(game) {
 // var freq = 4; //hz
 // var period = 1 / freq * 1000; //ms
 
+function title(str) {
+    return str[0] + str.slice(1, str.length).toLowerCase();
+}
+
 (async () => {
     const game = window.location.search.replace("?", "").toUpperCase() || "TETRIS";
-    document.querySelector(".game").textContent = game[0] + game.slice(1, game.length).toLowerCase();
+    document.title += " - " + title(game);
+    document.querySelector("h1").textContent += " - " + title(game);
     const chip8 = new Chip8(await fetchGame(game));
 })();
