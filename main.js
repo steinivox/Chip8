@@ -1,4 +1,4 @@
-import {Chip8} from '/chip8.js';
+import { Chip8 } from '/chip8.js';
 
 /**
  * fetchGame gets game file from server
