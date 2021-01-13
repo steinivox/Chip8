@@ -7,44 +7,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="style.css">
 
     <!-- Emoji favicon! -->
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
     <style>
-        canvas {
-            width: 100%;
-            height: auto;
-            box-shadow: 2px 2px 4px;
 
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            body {
-                color: white;
-                background: #1b1918;
-            }
-
-            pre {
-                color: white;
-            }
-
-            canvas {
-                box-shadow: 2px 2px 4px black;
-            }
-        }
     </style>
 </head>
 
 <body>
     <div class="container">
         <h1>Chip8</h1>
-
-        <h2 class="game">Game</h2>
         <canvas></canvas>
         <pre class="info"></pre>
     </div>
