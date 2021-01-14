@@ -26,5 +26,8 @@ function title(str) {
     const chip8 = new Chip8(await fetchGame(game));
 
     const canvas = document.querySelector("canvas");
-    canvas.ondblclick = () => canvas.requestFullscreen();
+    canvas.ondblclick = () => {
+        if (!document.fullscreenElement) canvas.requestFullscreen();
+        else document.exitFullscreen();
+    };
 })();
