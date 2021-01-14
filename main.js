@@ -24,4 +24,7 @@ function title(str) {
     document.title += " - " + title(game);
     document.querySelector("h1").textContent += " - " + title(game);
     const chip8 = new Chip8(await fetchGame(game));
+
+    const canvas = document.querySelector("canvas");
+    canvas.ondblclick = () => canvas.requestFullscreen();
 })();
