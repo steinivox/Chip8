@@ -115,28 +115,37 @@ class Chip8 {
 
         // for FX0A
         this.halt = false;
-
-        // 0.0026200000022072343 ms per main (no debug)
+        
+        // 0.35 MHz at 10000 iterations
+        // 60 MHz at 1000000000 iterations
         if (TIME) {
             const t0 = performance.now();
-            for (let i = 0; i < 10000; i++) {
+            let iterations = 10000;
+            for (let i = 0; i < iterations; i++) {
                 this.main();
             }
-            console.log("blocking main loop: " + (performance.now() - t0) / 10000 + " ms per main");
+            const timeMs = (performance.now() - t0) / iterations;
+            console.log("blocking main loop: " + timeMs + " ms per main");
+            console.log((1/(timeMs/1000*1000000))+" MHz");
         }
-
-        this.cycle = () => {
-            // this.main();
-            for (let i = 0; i < 4; i++) this.main();
-            if (!this.halt) setTimeout(this.cycle, 0);
-        };
-        setTimeout(this.cycle, 0);
+        console.log(this.programCounter);
 
         // draw loop
-        this.draw = () => {
+        this.lastTime = 0;
+        this.draw = time => {
             this.updateCanvas();
             this.printRegisters();
             window.requestAnimationFrame(this.draw);
+
+            const framerate = 1/((time-this.lastTime)/1000);
+
+            console.log("framerate:",framerate);
+            this.lastTime = time;
+
+            // 800 instructions per second
+            for (let i = 0; i < 800/framerate; i++) {
+                if (!this.halt) this.main();
+            }
         };
         window.requestAnimationFrame(this.draw);
     }
@@ -436,7 +445,7 @@ class Chip8 {
                 document.onkeypress = e => {
                     this.V[x] = this.keyMap[e.key];
                     this.halt = false;
-                    window.requestAnimationFrame(this.cycle);
+                    // window.requestAnimationFrame(this.cycle);
                     // setTimeout(this.cycle, period);
                 };
             }
