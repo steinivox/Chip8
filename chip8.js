@@ -445,8 +445,6 @@ class Chip8 {
                 document.onkeypress = e => {
                     this.V[x] = this.keyMap[e.key];
                     this.halt = false;
-                    // window.requestAnimationFrame(this.cycle);
-                    // setTimeout(this.cycle, period);
                 };
             }
             else if (lower === 0x15) {
