@@ -135,17 +135,16 @@ class Chip8 {
         this.draw = time => {
             this.updateCanvas();
             this.printRegisters();
-            window.requestAnimationFrame(this.draw);
 
             const framerate = 1/((time-this.lastTime)/1000);
-
-            console.log("framerate:",framerate);
             this.lastTime = time;
 
             // 800 instructions per second
             for (let i = 0; i < 800/framerate; i++) {
                 if (!this.halt) this.main();
             }
+
+            window.requestAnimationFrame(this.draw);
         };
         window.requestAnimationFrame(this.draw);
     }
