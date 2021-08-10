@@ -50,7 +50,7 @@ class Chip8 {
             this.memory[i + this.programCounter] = program[i];
         }
 
-        var audioCtx = new window.AudioContext();
+        let audioCtx = new window.AudioContext();
         this.beeper = audioCtx.createOscillator();
         this.beeper.type = 'square';
         this.beeper.frequency.setValueAtTime(440, audioCtx.currentTime); // value in hertz
@@ -638,7 +638,7 @@ class Chip8 {
     }
 
     updateCanvas() {
-        var imageData = this.canvasCtx.getImageData(0, 0, 64, 32);
+        let imageData = this.canvasCtx.getImageData(0, 0, 64, 32);
         const data = imageData.data;
         for (let i = 0; i < (32 * 64) / 8; i++) {
             let mask = 128;
