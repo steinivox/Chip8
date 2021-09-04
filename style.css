@@ -33,4 +33,8 @@ pre {
     canvas {
         box-shadow: 2px 2px 4px black;
     }
+    select {
+        color: white;
+        background: #1b1918;
+    }
 }
