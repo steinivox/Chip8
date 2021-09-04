@@ -57,8 +57,8 @@ function title(str) {
             "VBRIX": "1: up, Q: down",
             "VERS": "",
             "WIPEOFF": "Q: left, E: right",
-        }
-        const  game = e.srcElement.value;
+        };
+        const game = e.srcElement.value;
         document.querySelector(".hints").textContent = hints[game];
         new Chip8(await fetchGame(game));
     };
