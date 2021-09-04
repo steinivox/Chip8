@@ -20,7 +20,7 @@ function title(str) {
 }
 
 (async () => {
-    const game = window.location.search.replace("?", "").toUpperCase() || "TETRIS";
+    const game = window.location.search.replace("?", "") || "TETRIS";
     document.title += " - " + title(game);
     document.querySelector("h1").textContent += " - " + title(game);
     const chip8 = new Chip8(await fetchGame(game));
