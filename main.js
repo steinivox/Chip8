@@ -22,8 +22,7 @@ function title(str) {
 (async () => {
     const game = window.location.search.replace("?", "") || "TETRIS";
     document.title += " - " + title(game);
-    document.querySelector("h1").textContent += " - " + title(game);
-    new Chip8(await fetchGame(game));
+    let chip8 = new Chip8(await fetchGame(game));
 
     const canvas = document.querySelector("canvas");
     canvas.ondblclick = () => {
@@ -45,7 +44,7 @@ function title(str) {
             "KALEID": "Q: left, E: right, 2: up, S: down, W: toggle",
             "MAZE": "",
             "MERLIN": "Q W A S",
-            "MISSILE": "",
+            "MISSILE": "S: shoot",
             "PONG": "Player 1, 1: up, Q: down. Player 2: 4: up, R: down",
             "PONG2": "Player 1, 1: up, Q1: down. Player 2: 4: up, R: down",
             "PUZZLE": "Q: left, E: right, S: up, 2: down",
@@ -60,6 +59,7 @@ function title(str) {
         };
         const game = e.srcElement.value;
         document.querySelector(".hints").textContent = hints[game];
-        new Chip8(await fetchGame(game));
+        chip8.running = false;
+        chip8 = new Chip8(await fetchGame(game));
     };
 })();

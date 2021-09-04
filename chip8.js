@@ -133,6 +133,8 @@ class Chip8 {
         }
         console.log(this.programCounter);
 
+        this.running = true;
+
         // draw loop
         this.lastTime = 0;
         this.draw = time => {
@@ -150,7 +152,7 @@ class Chip8 {
             for (let i = 0; i < 800 / framerate; i++) {
                 if (!this.halt) this.main();
             }
-            window.requestAnimationFrame(this.draw);
+            if (this.running) window.requestAnimationFrame(this.draw);
         };
         window.requestAnimationFrame(this.draw);
     }
