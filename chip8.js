@@ -614,12 +614,6 @@ class Chip8 {
                 this.I += x + 1;
             }
         }
-        // else {
-        //     // throw new Error(`Illegal opcode ${hexStr(opcode, 4)} at address ${hexStr(this.address, 4)}`);
-        //     console.error(`Illegal opcode ${hexStr(opcode, 4)} at address ${hexStr(this.address, 4)}`);
-        //     this.halt = true;
-        // }
-
         this.programCounter += 2;
     }
 

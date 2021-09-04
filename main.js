@@ -12,9 +12,6 @@ async function fetchGame(game) {
     return data;
 }
 
-// var freq = 4; //hz
-// var period = 1 / freq * 1000; //ms
-
 function title(str) {
     return str[0] + str.slice(1, str.length).toLowerCase();
 }
