@@ -137,7 +137,7 @@ class Chip8 {
         this.draw = time => {
             this.updateCanvas();
             this.printRegisters();
-            console.log(this.debugMsg);
+            if (DEBUG) console.log(this.debugMsg);
             this.debugMsg = "";
 
             const framerate = 1 / ((time - this.lastTime) / 1000);
