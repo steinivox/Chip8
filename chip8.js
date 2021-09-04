@@ -665,6 +665,9 @@ class Chip8 {
     }
 }
 
+/**
+ * Returns number as a hex string of a certain length with optional prefix
+ */
 function hexStr(num, length, prefix) {
     let str = "";
     if (prefix === undefined || prefix === true) str += "0x";
