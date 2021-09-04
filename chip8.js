@@ -57,6 +57,7 @@ class Chip8 {
         this.gainNode = audioCtx.createGain();
         this.beeper.connect(this.gainNode);
         this.gainNode.connect(audioCtx.destination);
+        this.beeper.start();
 
         this.gainNode.gain.value = 0;
 
